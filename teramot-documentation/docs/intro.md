@@ -111,44 +111,6 @@ CORS preflight handling.
 
 Client disconnection endpoint.
 
-### Direct Tool Endpoints
-
-#### `POST /mcp/tools/call`
-
-Direct tool execution endpoint (bypasses JSON-RPC).
-
-**Authentication**: Required (`mcp:tools` scope)
-
-<Tabs>
-<TabItem value="request" label="Request">
-
-```json
-{
-  "name": "query_table_expert",
-  "arguments": {
-    "message": "Show me top 10 customers by revenue",
-    "topic": "sales-analysis"
-  }
-}
-```
-
-</TabItem>
-<TabItem value="response" label="Response">
-
-```json
-{
-  "content": [
-    {
-      "type": "text", 
-      "text": "Analysis result with SQL queries and insights..."
-    }
-  ]
-}
-```
-
-</TabItem>
-</Tabs>
-
 #### `GET /mcp/tools/list`
 
 List available tools (GET endpoint for backward compatibility).
