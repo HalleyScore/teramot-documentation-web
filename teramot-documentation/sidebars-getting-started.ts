@@ -1,4 +1,4 @@
-import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
+import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 
 const sidebars: SidebarsConfig = {
   gettingStartedSidebar: [
@@ -16,6 +16,11 @@ const sidebars: SidebarsConfig = {
       type: 'doc',
       id: 'aws-bucket-setup',
       label: 'Create an AWS S3 Bucket',
+    },
+    {
+      type: 'doc',
+      id: 'multi-tenant-deployment',
+      label: 'Multi-Tenant Deployment',
     },
     {
       type: 'doc',

@@ -1,5 +1,5 @@
-import {themes as prismThemes} from 'prism-react-renderer';
-import type {Config} from '@docusaurus/types';
+import { themes as prismThemes } from 'prism-react-renderer';
+import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
@@ -36,6 +36,11 @@ const config: Config = {
     locales: ['en'],
   },
 
+  markdown: {
+    mermaid: true,
+  },
+  themes: ['@docusaurus/theme-mermaid'],
+
   presets: [
     [
       'classic',
@@ -64,7 +69,7 @@ const config: Config = {
       },
     ],
   ],
-  
+
 
   // Multiple documentation sections
   plugins: [
@@ -108,8 +113,8 @@ const config: Config = {
     image: 'img/index/logo.png',
     colorMode: {
       defaultMode: 'dark',
-      respectPrefersColorScheme: false, 
-      disableSwitch: false, 
+      respectPrefersColorScheme: false,
+      disableSwitch: false,
     },
     navbar: {
       title: 'Teramot Docs',
@@ -133,7 +138,7 @@ const config: Config = {
           position: 'left',
           label: 'Compliance',
         },
-        {to: '/updates', label: 'Updates', position: 'left'},
+        { to: '/updates', label: 'Updates', position: 'left' },
         {
           to: '/status/intro',
           position: 'left',
@@ -144,7 +149,7 @@ const config: Config = {
           label: 'Teramot.com',
           position: 'right',
         },
-        
+
       ],
     },
     footer: {
@@ -165,7 +170,7 @@ const config: Config = {
               label: 'Compliance',
               to: '/compliance/about',
             },
-            
+
           ],
         },
         {
@@ -198,17 +203,17 @@ const config: Config = {
             },
           ],
         },
-        
+
       ],
       copyright: `© ${new Date().getFullYear()} Teramot, Inc. All rights reserved.`,
       logo: {
         alt: 'Teramot Logo',
-        src: '/img/index/logo-light.png', 
+        src: '/img/index/logo-light.png',
         href: 'https://teramot.com',
         width: 400,
       },
     },
-    
+
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
