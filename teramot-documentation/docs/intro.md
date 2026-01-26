@@ -10,11 +10,15 @@ import Admonition from '@theme/Admonition';
 
 # Teramot MCP API Documentation
 
+<Admonition type="caution" title="Feature In Development">
+This is a **work-in-progress feature** currently under active development. The MCP API and its capabilities are not yet available in production and are subject to change.
+</Admonition>
+
 ## Overview
 
-The Teramot Model Context Protocol (MCP) API provides AI-powered data engineering capabilities through a standardized protocol. Built on the MCP 2025-03-26 specification, it enables seamless integration with MCP-compatible clients while maintaining enterprise security and scalability.
+The Teramot Model Context Protocol (MCP) API provides AI-powered data engineering capabilities through a standardized protocol. Built on the MCP 2025-11-25 specification, it enables seamless integration with MCP-compatible clients while maintaining enterprise security and scalability.
 
-**Base URL**: `https://api.teramot.com/mcp`
+<!-- **Base URL**: `https://api.teramot.com/mcp` -->
 
 ## What is MCP?
 
@@ -24,18 +28,28 @@ Model Context Protocol (MCP) is an open standard that allows AI applications to 
 - 🔐 **Enterprise Security**: JWT-based authentication with dynamic scopes
 - 📊 **Usage Tracking**: Comprehensive monitoring and billing integration
 - 🚀 **Real-time Streaming**: Server-Sent Events for long-running operations
-- 🛠️ **Table Expert Agent**: Advanced data engineering capabilities
+<!-- - 🛠️ **Table Expert Agent**: Advanced data engineering capabilities -->
 
 ## Authentication
 
 ### JWT Token Requirements
 
-All MCP endpoints (except `initialize`) require a valid JWT token with specific scopes:
+All MCP endpoints (except `initialize` and `tools/list`) require a valid JWT token with specific scopes:
 
-**Required Scope**: `mcp:tools:your-usecase-id`
+**Required Scope Pattern**: `mcp:tools:your-usecase-id`
 
 **Example Scopes**:
 - `mcp:tools:sales-analysis` - Access to sales analysis data
+
+**Unauthenticated Methods** (bootstrap flow):
+- `initialize` - Always accessible without token
+- `tools/list` - Accessible without token to enable connector bootstrap
+
+**Scope Validation**:
+- Token must include `mcp:tools` base scope
+- Additional usecase-specific scope: `mcp:tools:{usecase_id}`
+- Server extracts `usecase_id` from token claims
+- All tool calls automatically receive the authenticated `usecase_id`
 
 ### Headers
 
@@ -49,8 +63,8 @@ mcp-session-id: SESSION_UUID  # Optional, for session management
 ### Authentication Flow
 
 <Admonition type="info">
-1. **No auth required**: `initialize` method
-2. **JWT required**: All other methods (`tools/list`, `tools/call`, `resources/list`, `resources/read`)
+1. **No auth required**: `initialize` and `tools/list` methods (bootstrap flow)
+2. **JWT required**: All other methods (`tools/call`, `resources/list`, `resources/read`)
 3. **Dynamic scopes**: Token must include specific use case access
 </Admonition>
 
@@ -115,7 +129,7 @@ Client disconnection endpoint.
 
 List available tools (GET endpoint for backward compatibility).
 
-**Authentication**: Required (`mcp:tools` scope)
+**Authentication**: Not required (part of bootstrap flow)
 
 #### `GET /mcp/resources/list`
 
@@ -142,7 +156,7 @@ Initialize MCP connection and negotiate capabilities.
   "id": "init-1",
   "method": "initialize",
   "params": {
-    "protocolVersion": "2025-03-26",
+    "protocolVersion": "2025-11-25",
     "capabilities": {
       "tools": {},
       "resources": {}
@@ -163,7 +177,7 @@ Initialize MCP connection and negotiate capabilities.
   "jsonrpc": "2.0",
   "id": "init-1",
   "result": {
-    "protocolVersion": "2025-03-26",
+    "protocolVersion": "2025-11-25",
     "capabilities": {
       "tools": {"listChanged": true},
       "resources": {"listChanged": true, "subscribe": true},
@@ -187,8 +201,8 @@ Initialize MCP connection and negotiate capabilities.
 
 List available MCP tools.
 
-<Admonition type="warning">
-**Authentication**: Required (`mcp:tools` scope)
+<Admonition type="note">
+**Authentication**: Not required (part of bootstrap flow)
 </Admonition>
 
 <Tabs>
@@ -212,21 +226,77 @@ List available MCP tools.
   "result": {
     "tools": [
       {
-        "name": "query_table_expert",
-        "description": "Query the Table Expert Agent for data analysis and insights.",
+        "name": "list_gold_tables",
+        "description": "List all GOLD (analytical) tables in the data warehouse.",
         "inputSchema": {
           "type": "object",
           "properties": {
-            "message": {
+            "usecase_id": {
               "type": "string",
-              "description": "The question or request to analyze"
+              "description": "Optional usecase identifier. If not provided, uses the usecase from your token."
+            }
+          }
+        }
+      },
+      {
+        "name": "list_silver_tables",
+        "description": "List all SILVER (processed) tables in the data warehouse.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "usecase_id": {
+              "type": "string",
+              "description": "Optional usecase identifier. If not provided, uses the usecase from your token."
+            }
+          }
+        }
+      },
+      {
+        "name": "peek",
+        "description": "Preview a table by showing its structure and sample rows.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table_name": {
+              "type": "string",
+              "description": "Name of the table to preview"
             },
-            "topic": {
-              "type": "string", 
-              "description": "The topic or domain for the analysis"
+            "limit": {
+              "type": "integer",
+              "description": "Number of rows to preview (default: 5, max: 20)"
+            },
+            "usecase_id": {
+              "type": "string",
+              "description": "Optional usecase identifier"
             }
           },
-          "required": ["message", "topic"]
+          "required": ["table_name"]
+        }
+      },
+      {
+        "name": "create_gold_table",
+        "description": "Create a new gold table using AI to generate SQL.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Name for the new table"
+            },
+            "description": {
+              "type": "string",
+              "description": "What the table should contain"
+            },
+            "source_tables": {
+              "type": "string",
+              "description": "Comma-separated list of silver table names to use"
+            },
+            "usecase_id": {
+              "type": "string",
+              "description": "Optional usecase identifier"
+            }
+          },
+          "required": ["name", "description"]
         }
       }
     ]
@@ -254,10 +324,10 @@ Execute a specific tool.
   "id": "call-tool",
   "method": "tools/call",
   "params": {
-    "name": "query_table_expert",
+    "name": "peek",
     "arguments": {
-      "message": "Show me the top 10 customers by revenue this quarter",
-      "topic": "sales-analysis"
+      "table_name": "ventas_mensuales",
+      "limit": 3
     }
   }
 }
@@ -274,7 +344,7 @@ Execute a specific tool.
     "content": [
       {
         "type": "text",
-        "text": "Based on Q4 2024 data, here are the top 10 customers by revenue:\n\n1. Acme Corp - $1,245,000\n2. GlobalTech Solutions - $987,500\n...\n\n**Execution Details:**\n\n**SQL Query:**\n```sql\nSELECT customer_name, SUM(revenue) as total_revenue\nFROM sales_data \nWHERE quarter = 'Q4-2024'\nGROUP BY customer_name\nORDER BY total_revenue DESC\nLIMIT 10;\n```\n\n**Execution Time:** 0.234 seconds"
+        "text": "{\n  \"table_name\": \"ventas_mensuales\",\n  \"layer\": \"gold\",\n  \"usecase_id\": \"sales-analysis\",\n  \"columns\": [\n    {\"name\": \"mes\", \"type\": \"varchar\"},\n    {\"name\": \"total_ventas\", \"type\": \"decimal\"},\n    {\"name\": \"numero_pedidos\", \"type\": \"bigint\"},\n    {\"name\": \"ticket_promedio\", \"type\": \"decimal\"}\n  ],\n  \"preview\": [\n    {\"mes\": \"2024-01\", \"total_ventas\": 145230.50, \"numero_pedidos\": 342, \"ticket_promedio\": 424.68},\n    {\"mes\": \"2024-02\", \"total_ventas\": 158940.75, \"numero_pedidos\": 389, \"ticket_promedio\": 408.59},\n    {\"mes\": \"2024-03\", \"total_ventas\": 172815.20, \"numero_pedidos\": 401, \"ticket_promedio\": 431.04}\n  ],\n  \"total_rows\": 12,\n  \"retrieved_at\": \"2024-04-15T14:22:00Z\"\n}"
       }
     ]
   }
@@ -284,12 +354,12 @@ Execute a specific tool.
 </TabItem>
 </Tabs>
 
-**Features**:
+<!-- **Features**:
 - Automatic `usecase_id` injection from JWT token
 - Usage tracking and billing integration
 - SQL query generation and execution
 - Performance monitoring
-- Plot generation (when applicable)
+- Plot generation (when applicable) -->
 
 ### `resources/list`
 
@@ -377,20 +447,177 @@ Read a specific resource.
 
 ## Available Tools
 
-### Table Expert (`query_table_expert`)
+### Data Warehouse Query Tools
 
-AI-powered data analysis agent that converts natural language queries into SQL and provides insights.
+#### `list_gold_tables`
+
+List all GOLD (analytical) tables in the data warehouse.
+
+**Parameters**:
+- `usecase_id` (string, optional): Usecase identifier. If not provided, uses the usecase from your token.
+
+**Returns**:
+- Table names and IDs
+- Column schemas with data types
+- Table status (ready, processing, error)
+- Row counts and metadata
+
+---
+
+#### `list_silver_tables`
+
+List all SILVER (processed) tables in the data warehouse.
+
+**Parameters**:
+- `usecase_id` (string, optional): Usecase identifier
+
+**Returns**:
+- Table names, columns, and data types
+- Foreign key relationships
+- Processing status and metadata
+
+**Note**: SILVER tables are automatically created when data sources are connected and represent cleaned, processed data.
+
+---
+
+#### `peek`
+
+Preview a table by showing its structure and sample rows.
+
+**Parameters**:
+- `table_name` (string, required): Name of the table to preview
+- `limit` (integer, optional): Number of rows to return (default: 5)
+- `usecase_id` (string, optional): Usecase identifier
+
+**Works With**: Both SILVER and GOLD tables
+
+**Returns**:
+- Column names and data types
+- Sample rows (up to specified limit)
+- Total row count
+
+**Example Workflow**:
+1. Call `list_silver_tables()` to see available tables
+2. Call `peek('tablename')` to preview its data
+
+---
+
+#### `get_gold_sql`
+
+Get the SQL query definition for a gold table.
+
+**Parameters**:
+- `table_name` (string, required): Name of the gold table
+- `usecase_id` (string, optional): Usecase identifier
+
+**Returns**:
+- Complete SQL SELECT statement
+- All filters, joins, and transformations
+- Table status and columns
+- Creation metadata
+
+---
+
+#### `get_table_relationships`
+
+Get foreign key relationships between silver tables.
+
+**Parameters**:
+- `usecase_id` (string, optional): Usecase identifier
+
+**Returns**:
+- Foreign key mappings
+- Referenced tables and columns
+- Relationship types
+
+**Use Case**: Helps choose related tables when creating gold tables.
+
+---
+
+### Table Management Tools
+
+#### `create_gold_table`
+
+Create a new gold table using AI to generate SQL.
+
+**Parameters**:
+- `name` (string, required): Name for the new gold table
+- `description` (string, required): What the table should contain
+- `usecase_id` (string, optional): Usecase identifier
+- `questions` (string, optional): Questions this table should answer
+- `knowledges` (string, optional): Business rules or constraints
+- `source_tables` (string, optional): Comma-separated silver table names to use
+- `columns` (string, optional): Specific columns to include
+
+**Required Workflow**:
+1. Call `list_silver_tables()` to see available data
+2. Call `get_table_relationships()` to see how tables connect
+3. Call `create_gold_table()` with selected source tables
+
+**Implementation**: Triggers async Celery task in auto-etl for SQL generation and table creation.
+
+---
+
+#### `get_table_status`
+
+Get detailed status of a specific table.
+
+**Parameters**:
+- `table_name` (string, required): Name of the table
+- `usecase_id` (string, optional): Usecase identifier
+
+**Returns**:
+- Table metadata and columns
+- Processing status
+- Preview data
+- Error information (if any)
+
+<!-- ### Project/Usecase Tools
+
+**Note**: These tools are currently not active in the implementation.
+
+#### `list_projects`
+
+List all available projects/usecases.
+
+**Returns**:
+- Project IDs and names
+- Status information
+- Creation metadata
+
+---
+
+#### `get_project`
+
+Get detailed information about a specific project.
+
+**Parameters**:
+- `usecase_id` (string, required): Usecase identifier
+
+**Returns**:
+- Complete project details
+- Associated tables and sources
+- Configuration and status -->
+
+
+<!-- ---
+
+### Table Expert Agent Tools
+
+#### `call_table_expert_a2a`
+
+Invoke the Table Expert Agent via A2A (Agent-to-Agent) protocol.
 
 **Parameters**:
 - `message` (string, required): Natural language question or analysis request
-- `topic` (string, required): Domain or topic for contextual understanding
+- `topic` (string, optional): Topic or domain for analysis
+- `usecase_id` (string, optional): Usecase identifier
 
 **Capabilities**:
 - **SQL Generation**: Natural language to optimized SQL queries
 - **Data Analysis**: Statistical analysis and insights
 - **Visualization**: Automatic plot generation for visual data
 - **Performance Tracking**: Execution time monitoring
-- **Context Awareness**: Topic-based analysis optimization
 
 **Example Use Cases**:
 
@@ -419,7 +646,7 @@ AI-powered data analysis agent that converts natural language queries into SQL a
 
 ```json
 {
-  "message": "Which products have the highest profit margins?", 
+  "message": "Which products have the highest profit margins?",
   "topic": "product-analysis"
 }
 ```
@@ -432,16 +659,16 @@ AI-powered data analysis agent that converts natural language queries into SQL a
 - Generated SQL queries (when applicable)
 - Execution time and performance metrics
 - Plot URLs for visualizations
-- Metadata about the analysis process
+- Metadata about the analysis process -->
 
 ## Session Management
 
 ### Session Lifecycle
 
-1. **Initialize**: Call `initialize` method to create session
-2. **Session ID**: Server returns `mcp-session-id` header
-3. **Subsequent Requests**: Include session ID in all requests
-4. **Validation**: Server validates session for non-initialize methods
+1. **Initialize**: Call `initialize` method to optionally create a session
+2. **Session ID**: Server returns `mcp-session-id` header if session is created
+3. **Subsequent Requests**: Optionally include session ID in requests
+4. **Validation**: Server validates session only if `mcp-session-id` header is provided
 
 ### Session Headers
 
@@ -449,12 +676,12 @@ AI-powered data analysis agent that converts natural language queries into SQL a
 mcp-session-id: 550e8400-e29b-41d4-a716-446655440000
 ```
 
-### Session Persistence
+### Session Behavior
 
-- Sessions maintain context across requests
-- Required for all methods except `initialize`
-- Automatic session creation during initialization
-- Session validation for security
+- Sessions are **optional** for the current implementation
+- If provided, the session will be validated
+- `initialize` method can create a session, but it's not mandatory
+- Session validation only occurs when `mcp-session-id` header is present
 
 ## Error Handling
 
@@ -575,8 +802,9 @@ MCP supports JSON-RPC batch requests for multiple operations:
 
 <Admonition type="caution" title="Batch Limitations">
 - `initialize` method cannot be part of batch requests
-- All requests in batch must have valid authentication (except initialize)
-- Batch processing is atomic - either all succeed or appropriate errors returned
+- Methods `initialize` and `tools/list` do not require authentication
+- All other methods in batch must have valid authentication (JWT with `mcp:tools` scope)
+- Batch processing is not strictly atomic - each request is processed independently
 </Admonition>
 
 ## Streaming Responses
@@ -633,7 +861,7 @@ All tool executions are automatically tracked for:
 
 ## Rate Limiting
 
-- Authentication required for all non-initialize methods
+- Authentication required for all methods except `initialize` and `tools/list`
 - Usage tracked per use case and user
 - Enterprise customers: Higher rate limits available
 - Streaming connections: Independent rate limiting
@@ -667,4 +895,4 @@ For technical support:
 
 ---
 
-**Specification Compliance**: This implementation follows the MCP 2025-03-26 specification with enterprise security enhancements.
+**Specification Compliance**: This implementation follows the MCP 2025-11-25 specification with enterprise security enhancements.
