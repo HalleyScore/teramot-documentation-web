@@ -611,6 +611,8 @@ Get detailed status of a specific table.
 - Preview data
 - Error information (if any)
 
+---
+
 ### Project/Usecase Tools
 
 **Note**: These tools are currently not active in the implementation.
