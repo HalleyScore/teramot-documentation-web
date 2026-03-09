@@ -10,15 +10,11 @@ import Admonition from '@theme/Admonition';
 
 # Teramot MCP API Documentation
 
-<Admonition type="caution" title="Feature In Development">
-This is a **work-in-progress feature** currently under active development. The MCP API and its capabilities are not yet available in production and are subject to change.
-</Admonition>
-
 ## Overview
 
 The Teramot Model Context Protocol (MCP) API provides AI-powered data engineering capabilities through a standardized protocol. Built on the MCP 2025-11-25 specification, it enables seamless integration with MCP-compatible clients while maintaining enterprise security and scalability.
 
-<!-- **Base URL**: `https://api.teramot.com/mcp` -->
+**Base URL**: `https://api.teramot.com/mcp`
 
 ## What is MCP?
 
@@ -274,6 +270,32 @@ List available MCP tools.
         }
       },
       {
+        "name": "validate_gold_request",
+        "description": "Validates a create_gold_table request.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Proposed name for the gold table"
+            },
+            "description": {
+              "type": "string",
+              "description": "Description of the table content"
+            },
+            "source_tables": {
+              "type": "string",
+              "description": "Comma-separated list of silver table names"
+            },
+            "questions": {
+              "type": "string",
+              "description": "Explicit SQL instructions derived from the user's request"
+            }
+          },
+          "required": ["name", "description"]
+        }
+      },
+      {
         "name": "create_gold_table",
         "description": "Create a new gold table using AI to generate SQL.",
         "inputSchema": {
@@ -287,13 +309,13 @@ List available MCP tools.
               "type": "string",
               "description": "What the table should contain"
             },
+            "questions": {
+              "type": "string",
+              "description": "Explicit SQL instructions that drive the generated query"
+            },
             "source_tables": {
               "type": "string",
               "description": "Comma-separated list of silver table names to use"
-            },
-            "usecase_id": {
-              "type": "string",
-              "description": "Optional usecase identifier"
             }
           },
           "required": ["name", "description"]
@@ -361,6 +383,7 @@ Execute a specific tool.
 - Performance monitoring
 - Plot generation (when applicable) -->
 
+<!--
 ### `resources/list`
 
 List available MCP resources.
@@ -444,6 +467,7 @@ Read a specific resource.
 
 </TabItem>
 </Tabs>
+-->
 
 ## Available Tools
 
@@ -536,6 +560,21 @@ Get foreign key relationships between silver tables.
 
 ### Table Management Tools
 
+#### `validate_gold_request`
+
+Validates a create_gold_table request.
+
+**Parameters**:
+- `name` (string, required): Proposed name for the gold table
+- `description` (string, required): Description of the table content
+- `source_tables` (string, optional): Comma-separated list of silver table names
+- `questions` (string, optional): Explicit SQL instructions derived from the user's request
+
+**Required Workflow**:
+Must be called and results shown to the user BEFORE calling `create_gold_table`.
+
+---
+
 #### `create_gold_table`
 
 Create a new gold table using AI to generate SQL.
@@ -543,16 +582,16 @@ Create a new gold table using AI to generate SQL.
 **Parameters**:
 - `name` (string, required): Name for the new gold table
 - `description` (string, required): What the table should contain
-- `usecase_id` (string, optional): Usecase identifier
-- `questions` (string, optional): Questions this table should answer
-- `knowledges` (string, optional): Business rules or constraints
+- `questions` (string, optional): Explicit SQL instructions that drive the generated query
 - `source_tables` (string, optional): Comma-separated silver table names to use
-- `columns` (string, optional): Specific columns to include
 
 **Required Workflow**:
 1. Call `list_silver_tables()` to see available data
 2. Call `get_table_relationships()` to see how tables connect
-3. Call `create_gold_table()` with selected source tables
+3. Call `validate_gold_request()` → show results to user
+   - high certainty → proceed to step 4
+   - low certainty → ask user, then re-validate
+4. Call `create_gold_table()` with selected source tables
 
 **Implementation**: Triggers async Celery task in auto-etl for SQL generation and table creation.
 
@@ -572,7 +611,7 @@ Get detailed status of a specific table.
 - Preview data
 - Error information (if any)
 
-<!-- ### Project/Usecase Tools
+### Project/Usecase Tools
 
 **Note**: These tools are currently not active in the implementation.
 
@@ -660,6 +699,45 @@ Invoke the Table Expert Agent via A2A (Agent-to-Agent) protocol.
 - Execution time and performance metrics
 - Plot URLs for visualizations
 - Metadata about the analysis process -->
+
+---
+
+<!--
+### Core Integration Tools
+
+#### `search`
+
+ChatGPT-required search tool. Returns summarized insights for a query.
+
+**Parameters**:
+- `query` (string, required): Search query
+- `limit` (int, optional): Number of results
+
+---
+
+#### `fetch`
+
+ChatGPT-required fetch tool. Returns a specific resource by identifier.
+
+**Parameters**:
+- `resource_id` (string, required): Resource to fetch
+
+---
+
+#### `schema`
+
+Return a minimal schema description for the current usecase.
+
+---
+
+#### `explain`
+
+Provide a short explanation for a resource or query identifier.
+
+**Parameters**:
+- `id` (string, required): Identifier to explain
+-->
+
 
 ## Session Management
 
