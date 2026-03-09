@@ -486,8 +486,6 @@ List all GOLD (analytical) tables in the data warehouse.
 - Table status (ready, processing, error)
 - Row counts and metadata
 
----
-
 #### `list_silver_tables`
 
 List all SILVER (processed) tables in the data warehouse.
@@ -501,8 +499,6 @@ List all SILVER (processed) tables in the data warehouse.
 - Processing status and metadata
 
 **Note**: SILVER tables are automatically created when data sources are connected and represent cleaned, processed data.
-
----
 
 #### `peek`
 
@@ -524,8 +520,6 @@ Preview a table by showing its structure and sample rows.
 1. Call `list_silver_tables()` to see available tables
 2. Call `peek('tablename')` to preview its data
 
----
-
 #### `get_gold_sql`
 
 Get the SQL query definition for a gold table.
@@ -539,8 +533,6 @@ Get the SQL query definition for a gold table.
 - All filters, joins, and transformations
 - Table status and columns
 - Creation metadata
-
----
 
 #### `get_table_relationships`
 
@@ -573,8 +565,6 @@ Validates a create_gold_table request.
 **Required Workflow**:
 Must be called and results shown to the user BEFORE calling `create_gold_table`.
 
----
-
 #### `create_gold_table`
 
 Create a new gold table using AI to generate SQL.
@@ -594,8 +584,6 @@ Create a new gold table using AI to generate SQL.
 4. Call `create_gold_table()` with selected source tables
 
 **Implementation**: Triggers async Celery task in auto-etl for SQL generation and table creation.
-
----
 
 #### `get_table_status`
 
@@ -625,8 +613,6 @@ List all available projects/usecases.
 - Project IDs and names
 - Status information
 - Creation metadata
-
----
 
 #### `get_project`
 
