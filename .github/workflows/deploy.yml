@@ -1,94 +1,86 @@
-name: Deploy to S3
+name: Deploy Documentation Web
 
 on:
   push:
     branches:
-      - dev
-      - prd
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prd
+
+run-name: Deploy [${{ github.ref_name }} -> ${{ github.event_name == 'push' && 'dev' || inputs.environment }}]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deployment/docs-web/${{ github.event_name == 'push' && 'dev' || inputs.environment }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: 'teramot-documentation/package-lock.json'
-        
-    - name: Install dependencies
-      run: |
-        cd teramot-documentation
-        npm ci
-        
-    - name: Build project
-      run: |
-        cd teramot-documentation
-        npm run build
-        
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-files
-        path: teramot-documentation/build/
 
-  deploy-dev:
-    if: github.ref == 'refs/heads/dev'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'teramot-documentation/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          cd teramot-documentation
+          npm ci
+
+      - name: Build project
+        run: |
+          cd teramot-documentation
+          npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-files
+          path: teramot-documentation/build/
+
+  deploy:
     needs: build
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: build-files
-        path: build/
-        
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
-        aws-region: us-east-1
-        
-    - name: Deploy to S3
-      run: |
-        aws s3 sync build/ s3://teramot-documentation-web-dev/ --delete
-        
-    - name: Invalidate CloudFront
-      if: vars.CLOUDFRONT_DISTRIBUTION_ID_DEV != ''
-      run: |
-        aws cloudfront create-invalidation --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID_DEV }} --paths "/*"
+    environment: ${{ github.event_name == 'push' && 'dev' || inputs.environment }}
 
-  deploy-prd:
-    if: github.ref == 'refs/heads/prd'
-    needs: build
-    runs-on: ubuntu-latest
-    
     steps:
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: build-files
-        path: build/
-        
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PRD }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PRD }}
-        aws-region: us-east-1
-        
-    - name: Deploy to S3
-      run: |
-        aws s3 sync build/ s3://teramot-documentation-web-prd/ --delete
-        
-    - name: Invalidate CloudFront
-      if: vars.CLOUDFRONT_DISTRIBUTION_ID_PRD != ''
-      run: |
-        aws cloudfront create-invalidation --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID_PRD }} --paths "/*"
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-files
+          path: build/
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-session-name: gha-docs-web-${{ github.run_id }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Deploy to S3
+        run: |
+          aws s3 sync build/ s3://${{ vars.S3_BUCKET }}/ --delete
+
+      - name: Invalidate CloudFront
+        if: vars.CLOUDFRONT_DISTRIBUTION_ID != ''
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
