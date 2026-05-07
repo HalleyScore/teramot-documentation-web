@@ -135,11 +135,29 @@ function DocumentationSections() {
       borderRadius: '8px',
       padding: '0.5rem 1rem',
       transition: 'all 0.2s ease',
+      cursor: 'pointer',
     }}
     onMouseEnter={e => (e.currentTarget.style.borderColor = '#aaa')}
     onMouseLeave={e => (e.currentTarget.style.borderColor = '#ccc')}
   >
     🛟 Need help? Visit the Help Center
+  </Link>
+
+</div>
+
+<div style={{ textAlign: 'center', marginTop: '1.25rem', display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
+  <Link
+    to="/terms"
+    style={{ color: 'var(--ifm-color-emphasis-500)', fontSize: '0.82rem', textDecoration: 'none', cursor: 'pointer' }}
+  >
+    Terms of Service
+  </Link>
+  <span style={{ color: 'var(--ifm-color-emphasis-300)', fontSize: '0.82rem' }}>·</span>
+  <Link
+    to="/privacy"
+    style={{ color: 'var(--ifm-color-emphasis-500)', fontSize: '0.82rem', textDecoration: 'none', cursor: 'pointer' }}
+  >
+    Privacy Policy
   </Link>
 </div>
 
