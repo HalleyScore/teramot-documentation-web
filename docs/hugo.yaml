@@ -1,0 +1,87 @@
+baseURL: https://docs.teramot.com
+title: Teramot Documentation
+locale: en-us
+defaultContentLanguage: en
+
+enableRobotsTXT: true
+
+module:
+  imports:
+    - path: github.com/imfing/hextra
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true   # allows raw HTML in markdown (iframes, etc.)
+  highlight:
+    noClasses: false
+
+params:
+  description: "Technical documentation, compliance materials, and product updates for Teramot"
+  favicon: /img/index/favicon.ico
+
+  navbar:
+    displayTitle: true
+    displayLogo: true
+    logo:
+      path: img/index/logo.png
+      dark: img/index/logo-dark.png
+      link: /
+      width: 40
+      height: 40
+
+  footer:
+    enable: true
+    displayCopyright: true
+    displayPoweredBy: false
+
+  displayUpdatedDate: false
+  dateFormat: "January 2, 2006"
+
+  theme:
+    default: dark
+    displayToggle: true
+
+  highlight:
+    copy:
+      enable: true
+      display: hover
+
+  sidebar:
+    width: 320
+
+  search:
+    enable: true
+    type: flexsearch
+
+  blog:
+    list:
+      displayTags: true
+      sortBy: date
+      sortOrder: desc
+
+  comments:
+    enable: false
+
+menus:
+  main:
+    - name: Getting Started
+      pageRef: /getting-started
+      weight: 1
+    - name: API
+      pageRef: /api
+      weight: 2
+    - name: Compliance
+      pageRef: /compliance
+      weight: 3
+    - name: Updates
+      pageRef: /updates
+      weight: 4
+    - name: Status
+      pageRef: /status
+      weight: 5
+    - name: Teramot.com
+      url: https://teramot.com
+      weight: 6
+      params:
+        type: external

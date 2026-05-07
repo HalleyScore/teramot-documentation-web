@@ -1,0 +1,307 @@
+---
+title: Multi-Tenant Deployment
+weight: 4
+---
+
+Keep your data in your AWS account while leveraging Teramot's ETL automation.
+
+{{< tabs items="🇺🇸 English,🇪🇸 Español" >}}
+
+{{< tab >}}
+
+## Overview
+
+Teramot offers a **hybrid deployment model** where:
+- **Your data stays 100% in your AWS account**
+- **Orchestration is performed remotely by Teramot**
+
+This approach ensures you maintain full control and ownership of your data.
+
+---
+
+## Data Flow
+
+![Multi-Tenant Architecture](/img/getting-started/multi-tenant-architecture.png)
+
+```mermaid
+sequenceDiagram
+    participant Teramot as Teramot
+    participant STS as AWS STS
+    participant Source as Your Data Source
+    participant Glue as AWS Glue (Your Account)
+    participant Athena as Athena (Your Account)
+    participant S3 as S3 Datalake (Your Account)
+
+    Note over Teramot,Source: 1. Schema Discovery
+    Source-->>Teramot: DB credentials (for metadata only)
+    Teramot->>Source: Discover tables, columns, types
+    Note right of Source: No data is read.<br/>Only schema metadata.
+
+    Note over Teramot,S3: 2. Cross-Account Access
+    Teramot->>STS: AssumeRole (with External ID)
+    STS-->>Teramot: Temporary credentials (1h)
+
+    Note over Teramot,S3: 3. Bronze Layer (Raw Data)
+    Teramot->>Glue: Start ETL job
+    Glue->>Source: Extract data (DB or S3 source)
+    Glue->>Athena: Create Iceberg tables
+    Glue->>S3: Write Bronze layer data
+
+    Note over Teramot,S3: 4. Silver & Gold Layers
+    Teramot->>Athena: Execute transformations
+    Athena->>S3: Write Silver/Gold data
+
+    Note over Teramot,S3: 5. Results Preview
+    Teramot->>Athena: Query Gold layer
+    Athena-->>Teramot: Preview (first 100 rows only)
+```
+
+### Key Points
+
+| Stage | Where it runs | What Teramot sees |
+|-------|---------------|-------------------|
+| Schema Discovery | Your infrastructure | Table/column names only |
+| Data Extraction | **Your AWS** (Glue) | Job status |
+| Transformations | **Your AWS** (Athena) | Query status |
+| Data Storage | **Your AWS** (S3) | Nothing |
+| Gold Results | **Your AWS** (Athena) | **Preview: first 100 rows only** |
+
+---
+
+## Resources Deployed in Your Account
+
+### S3 Buckets
+
+| Bucket | Purpose |
+|--------|---------|
+| `teramot-{tenant}-datalake` | Bronze/Silver/Gold layers (Iceberg format) |
+| `teramot-{tenant}-data` | Your raw source files (CSV, Parquet, etc.) |
+| `teramot-{tenant}-etl-scripts` | Glue job scripts |
+| `teramot-{tenant}-athena-results` | Athena query results (auto-expire 30 days) |
+
+### IAM Roles
+
+| Role | Purpose |
+|------|---------|
+| `teramot-{tenant}-orchestrator-access` | Allows Teramot to assume cross-account role |
+| `teramot-{tenant}-glue-execution-role` | Runs Glue jobs within your account |
+
+### Other Resources
+
+| Resource | Name |
+|----------|------|
+| Athena Workgroup | `teramot-{tenant}-workgroup` |
+| Glue Databases | `{tenant}_*` (e.g., `acme_sales`) |
+
+---
+
+## Requirements
+
+### 1. Data Source Access
+
+**For Database Sources:**
+- Teramot needs **read-only credentials** to discover schema (tables, columns, data types)
+- These credentials are used to connect during schema discovery
+- Glue jobs use these same credentials to extract data
+
+{{< callout >}}
+During schema discovery, Teramot only reads metadata (table names, column names, data types). No actual data is read at this stage.
+{{< /callout >}}
+
+**For S3 Sources:**
+- Upload your files to the `teramot-{tenant}-data` bucket
+
+### 2. IAM User for Infrastructure Deployment
+
+We need an IAM user with the following permissions to deploy the required resources:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "S3BucketManagement",
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateBucket", "s3:DeleteBucket", "s3:PutBucketVersioning",
+        "s3:PutBucketEncryption", "s3:PutBucketPublicAccessBlock",
+        "s3:PutLifecycleConfiguration", "s3:GetBucket*", "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::teramot-*"
+    },
+    {
+      "Sid": "IAMRoleManagement",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole", "iam:DeleteRole", "iam:GetRole",
+        "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy", "iam:PassRole", "iam:TagRole", "iam:UntagRole"
+      ],
+      "Resource": "arn:aws:iam::*:role/teramot-*"
+    },
+    {
+      "Sid": "AthenaWorkgroupManagement",
+      "Effect": "Allow",
+      "Action": [
+        "athena:CreateWorkGroup", "athena:DeleteWorkGroup",
+        "athena:UpdateWorkGroup", "athena:GetWorkGroup", "athena:TagResource"
+      ],
+      "Resource": "arn:aws:athena:*:*:workgroup/teramot-*"
+    }
+  ]
+}
+```
+
+### 3. Information We Need
+
+| Item | Example | Description |
+|------|---------|-------------|
+| `tenant_name` | `acme-corp` | Unique identifier (lowercase, hyphens only) |
+| `aws_account_id` | `123456789012` | Your AWS account ID |
+| `region` | `us-east-1` | Where to deploy resources |
+
+---
+
+## Security
+
+| Aspect | Implementation |
+|--------|---------------|
+| Cross-Account Access | STS AssumeRole with External ID |
+| Encryption at Rest | S3 Server-Side Encryption (AES256 or KMS) |
+| Public Access | Blocked on all buckets |
+| Temporary Credentials | Maximum 1-hour duration |
+| Least Privilege | Permissions scoped to `teramot-{tenant}-*` resources |
+| Audit Trail | All actions logged in CloudTrail |
+
+{{< callout type="warning" >}}
+Each tenant receives a unique **External ID** for role assumption. This prevents unauthorized access and solves the "confused deputy" problem.
+{{< /callout >}}
+
+---
+
+## FAQ
+
+**Does my data leave my AWS account?**  
+No. All data processing (Glue jobs, Athena queries) runs inside your AWS account. Only metadata and job status information is exchanged with Teramot.
+
+**What happens if I revoke access?**  
+Teramot immediately loses the ability to operate. Your data remains intact in your account.
+
+**Can I audit Teramot's actions?**  
+Yes. AWS CloudTrail logs all actions performed by the orchestrator role.
+
+**Does Teramot see my actual data?**  
+Only during Gold layer previews, Teramot receives the first 100 rows of query results for display purposes. All other data remains exclusively in your account.
+
+{{< /tab >}}
+
+{{< tab >}}
+
+## Resumen
+
+Teramot ofrece un **modelo de despliegue híbrido** donde:
+- **Tus datos permanecen 100% en tu cuenta AWS**
+- **La orquestación se realiza remotamente por Teramot**
+
+Este enfoque asegura que mantengas control total sobre tus datos.
+
+---
+
+## Flujo de Datos
+
+![Arquitectura Multi-Tenant](/img/getting-started/multi-tenant-architecture.png)
+
+```mermaid
+sequenceDiagram
+    participant Teramot as Teramot
+    participant STS as AWS STS
+    participant Source as Tu Fuente de Datos
+    participant Glue as AWS Glue (Tu Cuenta)
+    participant Athena as Athena (Tu Cuenta)
+    participant S3 as S3 Datalake (Tu Cuenta)
+
+    Note over Teramot,Source: 1. Descubrimiento de Schema
+    Source-->>Teramot: Credenciales DB (solo metadata)
+    Teramot->>Source: Descubre tablas, columnas, tipos
+    Note right of Source: No se leen datos.<br/>Solo metadata del schema.
+
+    Note over Teramot,S3: 2. Acceso Cross-Account
+    Teramot->>STS: AssumeRole (con External ID)
+    STS-->>Teramot: Credenciales temporales (1h)
+
+    Note over Teramot,S3: 3. Capa Bronze (Datos Raw)
+    Teramot->>Glue: Iniciar job ETL
+    Glue->>Source: Extraer datos (DB o S3)
+    Glue->>Athena: Crear tablas Iceberg
+    Glue->>S3: Escribir capa Bronze
+
+    Note over Teramot,S3: 4. Capas Silver y Gold
+    Teramot->>Athena: Ejecutar transformaciones
+    Athena->>S3: Escribir datos Silver/Gold
+
+    Note over Teramot,S3: 5. Preview de Resultados
+    Teramot->>Athena: Query capa Gold
+    Athena-->>Teramot: Preview (solo primeras 100 filas)
+```
+
+### Puntos Clave
+
+| Etapa | Dónde se ejecuta | Qué ve Teramot |
+|-------|------------------|----------------|
+| Descubrimiento de Schema | Tu infraestructura | Solo nombres de tablas/columnas |
+| Extracción de Datos | **Tu AWS** (Glue) | Estado del job |
+| Transformaciones | **Tu AWS** (Athena) | Estado del query |
+| Almacenamiento | **Your AWS** (S3) | Nada |
+| Resultados Gold | **Tu AWS** (Athena) | **Preview: solo 100 filas** |
+
+---
+
+## Recursos Desplegados en Tu Cuenta
+
+### Buckets S3
+
+| Bucket | Propósito |
+|--------|-----------|
+| `teramot-{tenant}-datalake` | Capas Bronze/Silver/Gold (formato Iceberg) |
+| `teramot-{tenant}-data` | Tus archivos fuente (CSV, Parquet, etc.) |
+| `teramot-{tenant}-etl-scripts` | Scripts de Glue jobs |
+| `teramot-{tenant}-athena-results` | Resultados de queries Athena (auto-expire 30 días) |
+
+### Roles IAM
+
+| Rol | Propósito |
+|-----|-----------|
+| `teramot-{tenant}-orchestrator-access` | Permite a Teramot asumir rol cross-account |
+| `teramot-{tenant}-glue-execution-role` | Ejecuta Glue jobs dentro de tu cuenta |
+
+---
+
+## Seguridad
+
+| Aspecto | Implementación |
+|---------|---------------|
+| Acceso Cross-Account | STS AssumeRole con External ID |
+| Encriptación en Reposo | S3 Server-Side Encryption (AES256 o KMS) |
+| Acceso Público | Bloqueado en todos los buckets |
+| Credenciales Temporales | Duración máxima 1 hora |
+| Mínimo Privilegio | Permisos limitados a recursos `teramot-{tenant}-*` |
+| Auditoría | Todas las acciones logueadas en CloudTrail |
+
+{{< callout type="warning" >}}
+Cada tenant recibe un **External ID único** para la asunción del rol. Esto previene accesos no autorizados y resuelve el problema del "confused deputy".
+{{< /callout >}}
+
+## FAQ
+
+**¿Mis datos salen de mi cuenta AWS?**  
+No. Todo el procesamiento de datos (Glue jobs, queries Athena) corre dentro de tu cuenta AWS. Solo metadata e información de estado de jobs se intercambia con Teramot.
+
+**¿Qué pasa si revoco el acceso?**  
+Teramot pierde inmediatamente la capacidad de operar. Tus datos permanecen intactos en tu cuenta.
+
+**¿Puedo auditar las acciones de Teramot?**  
+Sí. AWS CloudTrail loguea todas las acciones realizadas por el rol del orquestador.
+
+{{< /tab >}}
+
+{{< /tabs >}}
