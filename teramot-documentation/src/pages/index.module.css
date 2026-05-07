@@ -143,6 +143,7 @@
 
 .heroButtons .button {
   font-weight: 600;
+  cursor: pointer;
 }
 
 /* Documentation Sections */
@@ -220,6 +221,7 @@
 .docSection .button {
   width: 100%;
   font-weight: 600;
+  cursor: pointer;
 }
 
 /* Footer */
