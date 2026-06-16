@@ -33,7 +33,7 @@ const config: Config = {
   // may want to replace "en" with "zh-Hans".
   i18n: {
     defaultLocale: 'en',
-    locales: ['en', 'es'],
+    locales: ['en'],
   },
 
   markdown: {
@@ -149,11 +149,6 @@ const config: Config = {
           label: 'Teramot.com',
           position: 'right',
         },
-        {
-          type: 'localeDropdown',
-          position: 'right',
-        },
-
       ],
     },
     footer: {
