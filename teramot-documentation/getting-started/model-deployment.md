@@ -182,7 +182,7 @@ teramot data validate --dataset training-set-v1
 Once deployed, your model will be available via REST API:
 
 ```bash
-curl -X POST https://api.teramot.com/v1/models/your-model-id/predict \
+curl -X POST https://mcp.teramot.com/mcp \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

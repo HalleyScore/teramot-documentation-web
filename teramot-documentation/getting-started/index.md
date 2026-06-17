@@ -30,7 +30,7 @@ To get started with Teramot, you'll typically follow these steps:
 
 ## Support
 
-Need help? Check our [FAQ section](./faq) or contact our support team through the [customer support page](/compliance/transparency/customer-support).
+Need help? Check our [FAQ section](./faq) or contact our support team through the [Help Center](/help).
 
 ## Next Steps
 

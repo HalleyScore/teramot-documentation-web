@@ -44,7 +44,7 @@ available in Claude Code.
    - **Name:** `teramot`
    - **Transport:** `HTTP`
    - **URL:** `https://mcp.teramot.com/mcp`
-   - **Client ID:** `5nldf3wj83yz9f6zbrsjx` (if required)
+   - **Client ID:** `5nldf3wj83yz9f6zbrsjx`
 3. Save and restart Claude Desktop.
 4. Open a new chat and activate the **teramot** connector.
 
@@ -66,7 +66,7 @@ Step by step on ChatGPT Desktop / Browser:
    - **Name:** `teramot`
    - **Transport:** `HTTP`
    - **URL:** `https://mcp.teramot.com/mcp`
-   - **Client ID:** `5nldf3wj83yz9f6zbrsjx` (if required)
+   - **Client ID:** `5nldf3wj83yz9f6zbrsjx`
 4. Save the configuration and complete authorization if prompted.
 5. Open a new chat and enable the **teramot** app.
 

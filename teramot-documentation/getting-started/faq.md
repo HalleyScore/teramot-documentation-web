@@ -95,7 +95,7 @@ Teramot uses API keys for authentication:
 
 ```bash
 curl -H "Authorization: Bearer YOUR_API_KEY" \
-     https://api.teramot.com/v1/models/predict
+     https://mcp.teramot.com/mcp
 ```
 
 For enhanced security, use:
@@ -217,10 +217,10 @@ Pricing is based on:
 
 ### Where can I find more documentation?
 
-- **API Reference**: [/api](/api) - Complete API documentation
-- **Compliance**: [/compliance](/compliance) - Security and legal docs
+- **API Reference**: [/api/intro](/api/intro) - Complete API documentation
+- **Compliance**: [/compliance/about](/compliance/about) - Security and legal docs
 - **Blog**: [/updates](/updates) - Technical articles and updates
-- **Status**: [/status](/status) - System status and incidents
+- **Status**: [/status/intro](/status/intro) - System status and incidents
 
 ### Can I get training for my team?
 
