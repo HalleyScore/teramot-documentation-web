@@ -43,7 +43,7 @@ workspaces, name the one you mean.
 | Tool | Description | Parameters |
 | --- | --- | --- |
 | `create_gold_table` | Create a results table (analysis spec); generates SQL from source tables + questions. Validation is built in; `validate_only=true` runs just the preflight checks without creating anything. | `source_tables` (string, required, JSON array from `list_available_tables`); `name` (string); `description` (string); `questions` (string); `knowledges` (string); `join_keys` (string); `validate_oly` (bool); `workspace_name`/`project_name` (string) |
-| `update_gold_table` | Update an existing results table: update description, manage instructions, or regenrate query. | `analysis_spec_name` (string, required); `action` (string, required: `update_description` | `create_instruction` | `update_instruction` | `replace_instruction` | `delete_instruction` | `regenerate_query`); `description` (string, required if `update_description`); `instructions` (array of `{id?, text}`, required for instructions actions except delete); `instruction_id` (array of string, required if `delete_instruction`); `workspace_name`/`project_name` (string) |
+| `update_gold_table` | Update an existing results table: update description, manage instructions, or regenrate query. | `analysis_spec_name` (string, required); `action` (string, required: `update_description` \| `create_instruction` \| `update_instruction` \| `replace_instruction` \| `delete_instruction` \| `regenerate_query`); `description` (string, required if `update_description`); `instructions` (array of `{id?, text}`, required for instructions actions except delete); `instruction_id` (array of string, required if `delete_instruction`); `workspace_name`/`project_name` (string) |
 | `delete_gold_table` | Permanently delete a results table and all its data. Two-step: call with `confirmed=false`, show the message, then `confirmed=true`. | `analysis_spec_name` (string); `confirmed` (bool); `workspace_name`/`project_name` (string) |
 | `duplicate_gold_table` | Duplicate a results table into a new draft analysis spec. | `analysis_spec_name` (string, required); `workspace_name`/`project_name` (string) |
 
@@ -57,4 +57,4 @@ workspaces, name the one you mean.
 
 | Tool | Description | Parameters |
 | --- | --- | --- |
-| `refresh_tables` | Trigger an ETL refresh: a single table's pipeline or the whole project to pick up new source data (produces a new revision). | `action` (string, required: `refresh_table` | `refresh_all`); `table_name` (string, required if `refresh_table`); `workspace_name`/`project_name` (string) |
+| `refresh_tables` | Trigger an ETL refresh: a single table's pipeline or the whole project to pick up new source data (produces a new revision). | `action` (string, required: `refresh_table` \| `refresh_all`); `table_name` (string, required if `refresh_table`); `workspace_name`/`project_name` (string) |
