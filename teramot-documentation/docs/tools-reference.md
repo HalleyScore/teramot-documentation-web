@@ -29,6 +29,12 @@ workspaces, name the one you mean.
 | `create_project` | Create a new project inside a workspace. | `workspace_name` (string, required); `slug` (string, required, 1–28 URL-safe chars); `region` (string, required); `status` (string, required: active \| inactive \| pending) |
 | `delete_project` | Permanently delete a project by name. Irreversible; requires owner access. Two-step confirm gate. | `project_name` (string, required); `workspace_name` (string); `confirmed` (bool) |
 
+## Project knowledge
+
+| Tool | Description | Parameters |
+| --- | --- | --- |
+| `project_knowledge` | Manage a project's durable domain-knowledge document — one markdown doc per project, curated per user, persisted across all conversations. Use it to record durable data findings; consult it before exploring a project's data. | `command` (string, required: view \| create \| str_replace \| insert \| delete); `content` (string, required for create — full markdown content, creates or replaces the whole document); `old_str`/`new_str` (string, required for str_replace — `old_str` must match exactly once); `insert_line` (int)/`insert_text` (string, required for insert — 0-indexed line to insert after); `workspace_name`/`project_name` (string) |
+
 ## Tables & data
 
 | Tool | Description | Parameters |
