@@ -25,35 +25,37 @@ workspaces, name the one you mean.
 
 | Tool | Description | Parameters |
 | --- | --- | --- |
-| `list_projects` | List all projects, optionally filtered by workspace. | `workspace_name` (string) |
-| `create_project` | Create a new project inside a workspace. | `workspace_name` (string, required); `slug` (string, required, 1–28 URL-safe chars); `region` (string, required); `status` (string, required: active \| inactive \| pending) |
+| `list_projects` | List projects by name. | `workspace_name` (string) |
+| `create_project` | Create a new project inside a workspace. | `workspace_name` (string, required); `slug` (string, required); `region` (string, required); `status` (string, required: active \| inactive \| pending) |
 | `delete_project` | Permanently delete a project by name. Irreversible; requires owner access. Two-step confirm gate. | `project_name` (string, required); `workspace_name` (string); `confirmed` (bool) |
+| `review_project` | Review a project's overall state: every ETL source and its tables with each table's status and last-refresh date, plus a per-source health summary. Use for a first look at a project — what data exists and whether it's fresh, still building, or errored. | `workspace_name`/`project_name` (string) |
 
 ## Project knowledge
 
 | Tool | Description | Parameters |
 | --- | --- | --- |
-| `project_knowledge` | Manage a project's durable domain-knowledge document — one markdown doc per project, curated per user, persisted across all conversations. Use it to record durable data findings; consult it before exploring a project's data. | `command` (string, required: view \| create \| str_replace \| insert \| delete); `content` (string, required for create — full markdown content, creates or replaces the whole document); `old_str`/`new_str` (string, required for str_replace — `old_str` must match exactly once); `insert_line` (int)/`insert_text` (string, required for insert — 0-indexed line to insert after); `workspace_name`/`project_name` (string) |
+| `project_knowledge` | Manage a project's durable domain-knowledge document — one markdown doc per project, curated per user, persisted across all conversations. Use it to record durable data findings; consult it before exploring a project's data. | `command` (string, required: view \| create \| str_replace \| insert \| delete); `content` (string); `old_str`/`new_str` (string — `old_str` must match exactly once); `insert_line` (int)/`insert_text` (string); `workspace_name`/`project_name` (string) |
 
 ## Tables & data
 
 | Tool | Description | Parameters |
 | --- | --- | --- |
-| `explore_tables` | List or inspect data-warehouse tables. **Listing** (no `table_name`): table names, filterable by `layer`. **Detail** (`table_name` set): one table's SQL, build status, lineage, data-quality profile, and column findings. `with_build_context` returns candidate source tables + join keys for a new results table. | `table_name` (string, required if `with_sql`, `with_quality`, or `with_status` is used); `layer` (string: gold \| silver \| bronze); `with_columns` (bool); `with_instructions` (bool); `with_sql` (bool); `with_information` (bool); `with_quality` (bool); `with_status` (bool); `with_build_context` (bool); `build_context_table_names` (array of string); `workspace_name`/`project_name` (string) |
-| `preview_table` | Preview the first 100 rows of a table (columns, types, sample rows). Accepts physical or logical name. | `table_name` (string, required); `workspace_name`/`project_name` (string) |
-| `query_data` | Execute a SQL query (TRINO dialect) against a table; returns JSON. Supports pagination via `execution_id` + `page`. | `table_name` (string, required); `sql` (string, required unless `execution_id` set); `execution_id` (string); `page` (int); `workspace_name`/`project_name` (string) |
+| `explore_tables` | List or inspect data-warehouse tables. **Listing** (no `table_name`): physical table names, filterable by `layer` (`gold` \| `silver` \| `bronze`); the gold listing also includes results tables still building, failed, or in draft. **Detail** (`table_name` set): one table's SQL, build status, analysis-spec identity plus lineage (depends-on / feeds), data-quality profile, and column findings. `with_build_context` returns the project's available source tables and auto-detected foreign-key relationships, for planning a new results table. | `table_name` (string, required if `with_sql`, `with_quality`, or `with_status` is used); `layer` (string: gold \| silver \| bronze); `with_columns` (bool); `with_instructions` (bool); `with_sql` (bool); `with_information` (bool); `with_quality` (bool); `with_status` (bool); `with_build_context` (bool); `build_context_table_names` (array of string); `workspace_name`/`project_name` (string) |
+| `preview_table` | Preview the first 100 rows of a table (columns, types, sample rows). | `table_name` (string, required); `workspace_name`/`project_name` (string) |
+| `query_data` | Execute a SQL query (TRINO dialect) against a table. Supports pagination by passing `execution_id` + `page` from a prior response. | `table_name` (string, required); `sql` (string, required); `execution_id` (string); `page` (int); `workspace_name`/`project_name` (string) |
 
 ## Results (gold) tables
 
 | Tool | Description | Parameters |
 | --- | --- | --- |
-| `create_gold_table` | Create a results table (analysis spec) — generates SQL from source tables + questions. `validate_only=true` runs preflight checks only, without creating anything. | `source_tables` (string, required; table names as CSV or a JSON array of `{name, description, columns}`, from `explore_tables`); `name` (string); `description` (string); `questions` (string); `knowledges` (string); `join_keys` (string); `validate_only` (bool); `workspace_name`/`project_name` (string) |
-| `update_gold_table` | Update an existing results table: update its description, manage instructions, or regenerate its query. | `analysis_spec_name` (string, required); `action` (string, required: update_description \| create_instruction \| update_instruction \| replace_instruction \| delete_instruction \| regenerate_query); `description` (string, required if `action`=update_description); `instructions` (array of `{id?, text}`, required for create_instruction/update_instruction/replace_instruction — each item needs `id` for update_instruction); `instruction_ids` (array of string, required if `action`=delete_instruction); `workspace_name`/`project_name` (string) |
+| `create_gold_table` | Create a results table. On success it submits the build and returns immediately. `validate_only=true` runs just the preflight validation and returns a preview, without creating anything. | `source_tables` (string, required); `name` (string); `description` (string); `questions` (string); `knowledges` (string); `join_keys` (string); `validate_only` (bool); `workspace_name`/`project_name` (string) |
+| `update_gold_table` | Update an existing results table: update its description, manage instructions, or regenerate its query. | `analysis_spec_name` (string, required); `action` (string, required: update_description \| create_instruction \| update_instruction \| replace_instruction \| delete_instruction \| regenerate_query); `description` (string); `instructions` (array of `{id?, text}`); `instruction_ids` (array of string); `workspace_name`/`project_name` (string) |
 | `delete_gold_table` | Permanently delete a results table and all its data. Two-step confirm gate. | `analysis_spec_name` (string); `confirmed` (bool); `workspace_name`/`project_name` (string) |
-| `duplicate_gold_table` | Duplicate a results table into a new draft analysis spec. | `analysis_spec_name` (string, required); `dry_run` (bool — verify the source table exists without creating the copy); `workspace_name`/`project_name` (string) |
+| `duplicate_gold_table` | Duplicate a results table into a new draft analysis spec. | `analysis_spec_name` (string, required); `dry_run` (bool); `workspace_name`/`project_name` (string) |
+| `get_gold_table_download_link` | Get a download link for a results table's full data as a CSV file. Link expires shortly after being issued. | `analysis_spec_name` (string); `visibility` (string: private \| public); `workspace_name`/`project_name` (string) |
 
 ## Refresh & scheduling
 
 | Tool | Description | Parameters |
 | --- | --- | --- |
-| `refresh_tables` | Trigger an ETL refresh — one table's pipeline or the whole project — to pick up new source data (produces a new revision). | `action` (string, required: refresh_table \| refresh_all); `table_name` (string, required if `action` = refresh_table); `workspace_name`/`project_name` (string) |
+| `refresh_tables` | Trigger an ETL refresh — one table's pipeline or the whole project — to pick up new source data (produces a new revision). | `action` (string, required: refresh_table \| refresh_all); `table_name` (string); `workspace_name`/`project_name` (string) |
