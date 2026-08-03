@@ -54,6 +54,12 @@ workspaces, name the one you mean.
 | `duplicate_gold_table` | Duplicate a results table into a new draft analysis spec. | `analysis_spec_name` (string, required); `dry_run` (bool); `workspace_name`/`project_name` (string) |
 | `get_gold_table_download_link` | Get a download link for a results table's full data as a CSV file. Link expires shortly after being issued. | `analysis_spec_name` (string); `visibility` (string: private \| public); `workspace_name`/`project_name` (string) |
 
+## Dashboards
+
+| Tool | Description | Parameters |
+| --- | --- | --- |
+| `dashboard` | Save, list, retrieve, or delete Claude-generated HTML/SVG dashboards, each tied to a results table by slug. **Dynamic** dashboards pair a template with a `query` so data refreshes live; **static** ones are frozen HTML/SVG. | `command` (string, required: save \| list \| get \| update \| delete); `title` (string, required for save); `type` (string: html \| svg, required for save); `content` (string, required for save); `query` (string); `gold_table_slug` (string, required for save); `dashboard_id` (string, required for get \| update \| delete); `workspace_name`/`project_name` (string) |
+
 ## Refresh & scheduling
 
 | Tool | Description | Parameters |
