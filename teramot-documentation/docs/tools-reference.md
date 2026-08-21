@@ -34,7 +34,8 @@ workspaces, name the one you mean.
 
 | Tool | Description | Parameters |
 | --- | --- | --- |
-| `project_knowledge` | Manage a project's durable domain-knowledge document — one markdown doc per project, curated per user, persisted across all conversations. Use it to record durable data findings; consult it before exploring a project's data. | `command` (string, required: view \| create \| str_replace \| insert \| delete); `content` (string); `old_str`/`new_str` (string — `old_str` must match exactly once); `insert_line` (int)/`insert_text` (string); `workspace_name`/`project_name` (string) |
+| `project_knowledge` | View a project's durable, shared knowledge document — join keys, business definitions, and caveats about the data, curated by the whole team over time (one markdown doc per project, not per user). Call it when starting work in a project, right after `review_project`. | `workspace_name`/`project_name` (string) |
+| `update_project_knowledge` | Create, edit, or delete a project's knowledge document. `create` creates the doc or fully replaces it if one exists; `str_replace` replaces a string that must match exactly once; `insert` adds text after a given line; `delete` removes the doc entirely. | `command` (string, required: create \| str_replace \| insert \| delete); `content` (string, required for create); `old_str`/`new_str` (string, for str_replace — `old_str` must match exactly once); `insert_line` (int)/`insert_text` (string, for insert); `workspace_name`/`project_name` (string) |
 
 ## Tables & data
 
@@ -56,9 +57,20 @@ workspaces, name the one you mean.
 
 ## Dashboards
 
+LLM-authored HTML/SVG/widget dashboards, each tied to a results table by slug. **Dynamic**
+dashboards pair a template with a `query` so data refreshes live; **static** ones are frozen
+HTML/SVG. One tool per operation: read with `list_dashboards`/`get_dashboard`, iterate with
+`preview_dashboard` before persisting with `save_dashboard`, then `update_dashboard` /
+`delete_dashboard` to manage what's saved.
+
 | Tool | Description | Parameters |
 | --- | --- | --- |
-| `dashboard` | Save, list, retrieve, or delete Claude-generated HTML/SVG dashboards, each tied to a results table by slug. **Dynamic** dashboards pair a template with a `query` so data refreshes live; **static** ones are frozen HTML/SVG. | `command` (string, required: save \| list \| get \| update \| delete); `title` (string, required for save); `type` (string: html \| svg, required for save); `content` (string, required for save); `query` (string); `gold_table_slug` (string, required for save); `dashboard_id` (string, required for get \| update \| delete); `workspace_name`/`project_name` (string) |
+| `list_dashboards` | List the project's saved dashboards — id, title, type and timestamps, without the document body. | `workspace_name`/`project_name` (string) |
+| `get_dashboard` | Retrieve one saved dashboard in full, including its document and query. Read it before `update_dashboard`. | `dashboard_id` (string, required); `workspace_name`/`project_name` (string) |
+| `preview_dashboard` | Render a dashboard preview in the chat without persisting anything — the tool to author and iterate with before saving. | `title` (string); `type` (string: html \| svg \| widget); `content` (string); `query` (string — required when `content` contains `{{expressions}}`); `workspace_name`/`project_name` (string) |
+| `save_dashboard` | Persist a new dashboard, wired to a results table by slug. Author and check it with `preview_dashboard` first. | `title` (string, required); `type` (string: html \| svg \| widget, required); `content` (string, required); `query` (string); `gold_table_slug` (string, required); `min_role` (string: readonly \| member \| admin \| owner); `workspace_name`/`project_name` (string) |
+| `update_dashboard` | Change a saved dashboard's title, content, query and/or minimum viewing role. Whatever is sent replaces the stored value outright — read it with `get_dashboard` first and send complete content, not a fragment. | `dashboard_id` (string, required); `title`/`content`/`query`/`min_role` (string, all optional); `workspace_name`/`project_name` (string) |
+| `delete_dashboard` | Delete a saved dashboard. Soft-deleted on the backend but not undoable from this surface, and anyone it was shared with loses access. | `dashboard_id` (string, required); `workspace_name`/`project_name` (string) |
 
 ## Refresh & scheduling
 
